@@ -6,6 +6,7 @@ import { colors, spacing, typography } from "../design/tokens";
 
 type HomeScreenProps = {
   affirmationText: string;
+  insightMessage: string | null;
   moodCountToday: number;
   winCountToday: number;
   sosCountToday: number;
@@ -13,11 +14,13 @@ type HomeScreenProps = {
   onWinPress: () => void;
   onSosPress: () => void;
   onCalendarPress: () => void;
+  onPlanPress: () => void;
   onSettingsPress: () => void;
 };
 
 export function HomeScreen({
   affirmationText,
+  insightMessage,
   moodCountToday,
   winCountToday,
   sosCountToday,
@@ -25,6 +28,7 @@ export function HomeScreen({
   onWinPress,
   onSosPress,
   onCalendarPress,
+  onPlanPress,
   onSettingsPress
 }: HomeScreenProps) {
   return (
@@ -44,8 +48,16 @@ export function HomeScreen({
           </Text>
         </AppCard>
 
+        {insightMessage ? (
+          <AppCard>
+            <Text style={styles.insightTitle}>傾向メモ</Text>
+            <Text style={styles.insightText}>{insightMessage}</Text>
+          </AppCard>
+        ) : null}
+
         <View style={styles.bottomActions}>
           <AppButton label="積み上げを見る" onPress={onCalendarPress} variant="ghost" />
+          <AppButton label="週間プラン" onPress={onPlanPress} variant="ghost" />
           <AppButton label="設定" onPress={onSettingsPress} variant="ghost" />
         </View>
       </View>
@@ -72,6 +84,16 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.muted,
     lineHeight: 20
+  },
+  insightTitle: {
+    color: colors.text,
+    fontSize: typography.body,
+    fontWeight: "600"
+  },
+  insightText: {
+    marginTop: spacing.xs,
+    color: colors.muted,
+    fontSize: typography.caption
   },
   bottomActions: {
     marginTop: spacing.sm,

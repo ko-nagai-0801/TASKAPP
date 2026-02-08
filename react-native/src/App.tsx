@@ -8,25 +8,59 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { MoodEntryScreen } from "./screens/MoodEntryScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { SosModeScreen } from "./screens/SosModeScreen";
+import { WeeklyPlanScreen } from "./screens/WeeklyPlanScreen";
+import { WeeklySummaryScreen } from "./screens/WeeklySummaryScreen";
 import { WinEntryScreen } from "./screens/WinEntryScreen";
 import {
   initDatabase,
   insertMoodLog,
   insertSosLog,
+  insertWeeklyGoal,
   insertWinLog,
   loadMoodLogs,
   loadNotificationSettings,
   loadOnboardingCompleted,
   loadSosLogs,
+  loadWeeklyGoals,
   loadWinLogs,
   saveNotificationSettings,
-  saveOnboardingCompleted
+  saveOnboardingCompleted,
+  updateWeeklyGoalCompletion
 } from "./storage/sqlite";
+import { getWeekStartKey, WeeklyGoal } from "./types/goals";
 import { MoodLog, nowIsoString, SosLog, toDateKey, WinLog } from "./types/logs";
 import { DEFAULT_NOTIFICATION_SETTINGS, NotificationSettings } from "./types/settings";
 
+type Screen = "home" | "mood" | "win" | "sos" | "calendar" | "settings" | "plan" | "summary";
+
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function inRecentDays(dateKey: string, days: number): boolean {
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  for (let index = 0; index < days; index += 1) {
+    const date = new Date(base);
+    date.setDate(base.getDate() - index);
+    if (toDateKey(date) === dateKey) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function detectLowStreak(moodLogs: MoodLog[]): number {
+  const sorted = [...moodLogs].sort((a, b) => a.date.localeCompare(b.date));
+  let streak = 0;
+  for (let index = sorted.length - 1; index >= 0; index -= 1) {
+    if (sorted[index].polarity === "low") {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 function deriveAffirmation(todayKey: string, moodLogs: MoodLog[], winLogs: WinLog[], sosLogs: SosLog[]): string {
@@ -48,14 +82,42 @@ function deriveAffirmation(todayKey: string, moodLogs: MoodLog[], winLogs: WinLo
   return "ここに来ただけで十分です";
 }
 
+function deriveInsightMessage(moodLogs: MoodLog[], winLogs: WinLog[], sosLogs: SosLog[]): string | null {
+  const recentMood = moodLogs.filter((log) => inRecentDays(log.date, 7));
+  const recentWin = winLogs.filter((log) => inRecentDays(log.date, 7));
+  const recentSos = sosLogs.filter((log) => inRecentDays(log.date, 7));
+  const lowStreak = detectLowStreak(recentMood);
+
+  if (lowStreak >= 2) {
+    return `低めの記録が ${lowStreak} 件続いています。今日は負荷を下げる行動を優先しましょう。`;
+  }
+
+  if (recentSos.length >= 2) {
+    return "しんどい時にSOSモードを使えていて、セルフケア行動が維持できています。";
+  }
+
+  if (recentWin.length >= 4) {
+    return "できたこと記録が増えています。小さな継続がしっかり積み上がっています。";
+  }
+
+  const hasRecentRecord = recentMood.length > 0 || recentWin.length > 0 || recentSos.length > 0;
+  if (!hasRecentRecord) {
+    return "記録が空いていても大丈夫です。再開できた時点で十分に前進です。";
+  }
+
+  return null;
+}
+
 export default function App() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
-  const [screen, setScreen] = useState<"home" | "mood" | "win" | "sos" | "calendar" | "settings">("home");
+  const [screen, setScreen] = useState<Screen>("home");
   const [moodLogs, setMoodLogs] = useState<MoodLog[]>([]);
   const [winLogs, setWinLogs] = useState<WinLog[]>([]);
   const [sosLogs, setSosLogs] = useState<SosLog[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+  const weekStart = useMemo(() => getWeekStartKey(new Date()), []);
 
   useEffect(() => {
     let alive = true;
@@ -63,11 +125,19 @@ export default function App() {
     const bootstrap = async () => {
       try {
         await initDatabase();
-        const [savedOnboardingCompleted, savedMoodLogs, savedWinLogs, savedSosLogs, savedNotificationSettings] = await Promise.all([
+        const [
+          savedOnboardingCompleted,
+          savedMoodLogs,
+          savedWinLogs,
+          savedSosLogs,
+          savedWeeklyGoals,
+          savedNotificationSettings
+        ] = await Promise.all([
           loadOnboardingCompleted(),
           loadMoodLogs(),
           loadWinLogs(),
           loadSosLogs(),
+          loadWeeklyGoals(weekStart),
           loadNotificationSettings()
         ]);
 
@@ -79,11 +149,12 @@ export default function App() {
         setMoodLogs(savedMoodLogs);
         setWinLogs(savedWinLogs);
         setSosLogs(savedSosLogs);
+        setWeeklyGoals(savedWeeklyGoals);
         setNotificationSettings(savedNotificationSettings);
         void syncDailyReminder(savedNotificationSettings, false).catch(() => {
           // Ignore sync failures on bootstrap and allow app usage.
         });
-      } catch (error) {
+      } catch {
         if (alive) {
           Alert.alert("初期化エラー", "データの読み込みに失敗しました。");
         }
@@ -99,7 +170,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [weekStart]);
 
   const todayKey = toDateKey(new Date());
   const moodCountToday = moodLogs.filter((log) => log.date === todayKey).length;
@@ -109,6 +180,7 @@ export default function App() {
     () => deriveAffirmation(todayKey, moodLogs, winLogs, sosLogs),
     [todayKey, moodLogs, winLogs, sosLogs]
   );
+  const insightMessage = useMemo(() => deriveInsightMessage(moodLogs, winLogs, sosLogs), [moodLogs, winLogs, sosLogs]);
 
   if (!isHydrated) {
     return (
@@ -240,11 +312,63 @@ export default function App() {
     return (
       <>
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <CalendarScreen
+        <CalendarScreen onBack={() => setScreen("home")} moodLogs={moodLogs} winLogs={winLogs} sosLogs={sosLogs} />
+      </>
+    );
+  }
+
+  if (screen === "plan") {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <WeeklyPlanScreen
+          weekStart={weekStart}
+          goals={weeklyGoals}
           onBack={() => setScreen("home")}
+          onOpenSummary={() => setScreen("summary")}
+          onAddGoal={async (title) => {
+            const goal: WeeklyGoal = {
+              id: createId("goal"),
+              weekStart,
+              title,
+              completed: false,
+              createdAt: nowIsoString()
+            };
+
+            setWeeklyGoals((prev) => [...prev, goal]);
+            try {
+              await insertWeeklyGoal(goal);
+            } catch {
+              setWeeklyGoals((prev) => prev.filter((entry) => entry.id !== goal.id));
+              throw new Error("insert goal failed");
+            }
+          }}
+          onToggleGoal={async (goalId, completed) => {
+            const previous = weeklyGoals;
+            setWeeklyGoals((prev) => prev.map((goal) => (goal.id === goalId ? { ...goal, completed } : goal)));
+            try {
+              await updateWeeklyGoalCompletion(goalId, completed);
+            } catch {
+              setWeeklyGoals(previous);
+              throw new Error("update goal failed");
+            }
+          }}
+        />
+      </>
+    );
+  }
+
+  if (screen === "summary") {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <WeeklySummaryScreen
+          weekStart={weekStart}
+          goals={weeklyGoals}
           moodLogs={moodLogs}
           winLogs={winLogs}
           sosLogs={sosLogs}
+          onBack={() => setScreen("plan")}
         />
       </>
     );
@@ -267,9 +391,9 @@ export default function App() {
                 Alert.alert("通知権限が必要です", "端末設定で通知を許可するとリマインドを受け取れます。");
               }
               setScreen("home");
-            } catch (error) {
+            } catch {
               setNotificationSettings(previous);
-              throw error;
+              throw new Error("save notification settings failed");
             }
           }}
           onResetOnboarding={() => {
@@ -289,6 +413,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <HomeScreen
         affirmationText={affirmationText}
+        insightMessage={insightMessage}
         moodCountToday={moodCountToday}
         winCountToday={winCountToday}
         sosCountToday={sosCountToday}
@@ -296,6 +421,7 @@ export default function App() {
         onWinPress={() => setScreen("win")}
         onSosPress={() => setScreen("sos")}
         onCalendarPress={() => setScreen("calendar")}
+        onPlanPress={() => setScreen("plan")}
         onSettingsPress={() => setScreen("settings")}
       />
     </>

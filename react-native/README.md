@@ -6,11 +6,13 @@
 ## 現在の実装範囲
 
 - オンボーディング（3画面 / 同意チェック必須）
-- ホーム（今日の肯定文、主要導線）
+- ホーム（今日の肯定文、傾向メモ、主要導線）
 - 気分記録（1-5段階、低め/高め、メモ）
 - できたこと記録（クイックタグ、自由入力）
 - 非常モード（3タスクチェック）
 - 積み上げカレンダー（週/月表示、日付詳細モーダル）
+- 週間プラン（目標追加、完了管理）
+- 週次サマリー（傾向表示、受診/共有テキスト生成）
 - 設定（通知ON/OFF、通知時刻）
 - SQLite永続化（再起動後もデータ保持）
 - ローカル通知（毎日1回）
@@ -56,9 +58,10 @@ npx expo export --platform web
 ## 主要画面フロー
 
 1. 初回起動: Onboarding1 -> Onboarding2 -> Onboarding3（同意）-> Home  
-2. Home -> MoodEntry / WinEntry / SosMode / Calendar / Settings  
+2. Home -> MoodEntry / WinEntry / SosMode / Calendar / WeeklyPlan / Settings  
 3. 記録保存後は Home に戻り、当日件数と肯定文が更新  
 4. Calendar では保存済みデータを色分け表示（記録あり / 低め優勢 / 高め優勢）
+5. WeeklyPlan から WeeklySummary を開き、サマリーを共有可能
 
 ## データ保存（SQLite）
 
@@ -69,6 +72,7 @@ DB名: `taskapp.db`
 - `win_logs`
 - `sos_logs`
 - `settings`
+- `weekly_goals`
 
 `settings` で保持:
 
@@ -82,6 +86,12 @@ DB名: `taskapp.db`
 - 設定画面で ON/OFF と時刻（`HH:mm`）を保存
 - 通知ON時、必要に応じて権限リクエスト
 - Webでは通知スケジュールをスキップ（モバイル実機/シミュレータ想定）
+
+## 改善機能（MVP外）
+
+- 傾向メモ: 直近ログから低め連続や継続状況をホームに表示
+- 週間プラン: 週次目標の追加と完了チェック
+- 週次サマリー: 受診/支援者共有向けの要約文を生成して共有
 
 ## ディレクトリ構成（抜粋）
 

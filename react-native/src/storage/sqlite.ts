@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import { WeeklyGoal } from "../types/goals";
 import { MoodLog, SosLog, WinLog } from "../types/logs";
 import { DEFAULT_NOTIFICATION_SETTINGS, NotificationSettings } from "../types/settings";
 
@@ -80,9 +81,18 @@ export async function initDatabase(): Promise<void> {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS weekly_goals (
+      id TEXT PRIMARY KEY NOT NULL,
+      week_start TEXT NOT NULL,
+      title TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_mood_logs_date ON mood_logs (date);
     CREATE INDEX IF NOT EXISTS idx_win_logs_date ON win_logs (date);
     CREATE INDEX IF NOT EXISTS idx_sos_logs_date ON sos_logs (date);
+    CREATE INDEX IF NOT EXISTS idx_weekly_goals_week_start ON weekly_goals (week_start);
 
     INSERT OR IGNORE INTO settings (id, reminder_enabled, daily_reminder_time, onboarding_completed, updated_at)
     VALUES (1, 1, '20:00', 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
@@ -273,5 +283,60 @@ export async function insertSosLog(log: SosLog): Promise<void> {
     log.breathingDone ? 1 : 0,
     log.restDone ? 1 : 0,
     log.createdAt
+  );
+}
+
+export async function loadWeeklyGoals(weekStart: string): Promise<WeeklyGoal[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{
+    id: string;
+    week_start: string;
+    title: string;
+    completed: number;
+    created_at: string;
+  }>(
+    `
+      SELECT id, week_start, title, completed, created_at
+      FROM weekly_goals
+      WHERE week_start = ?
+      ORDER BY created_at ASC
+    `,
+    weekStart
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    weekStart: row.week_start,
+    title: row.title,
+    completed: row.completed === 1,
+    createdAt: row.created_at
+  }));
+}
+
+export async function insertWeeklyGoal(goal: WeeklyGoal): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `
+      INSERT INTO weekly_goals (id, week_start, title, completed, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    goal.id,
+    goal.weekStart,
+    goal.title,
+    goal.completed ? 1 : 0,
+    goal.createdAt
+  );
+}
+
+export async function updateWeeklyGoalCompletion(goalId: string, completed: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `
+      UPDATE weekly_goals
+      SET completed = ?
+      WHERE id = ?
+    `,
+    completed ? 1 : 0,
+    goalId
   );
 }
