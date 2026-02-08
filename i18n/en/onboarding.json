@@ -1,0 +1,28 @@
+{
+  "common": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "start": "Get Started"
+  },
+  "screen1": {
+    "title": "A Safe Place to Start",
+    "message": "Just showing up here is already a step forward",
+    "subtext": "Log in 30 seconds. Works offline, too."
+  },
+  "screen2": {
+    "title": "Capture Small Wins",
+    "message": "No win is too small to count",
+    "subtext": "No comparison. Your pace matters."
+  },
+  "screen3": {
+    "title": "Begin Today",
+    "message": "Try logging just one thing today",
+    "subtext": "On hard days, SOS mode alone is enough."
+  },
+  "consent": {
+    "label": "I agree to the Terms of Use and Privacy Policy",
+    "subtext": "Health-related notes are stored locally on your device (MVP).",
+    "error": "Please agree before getting started"
+  }
+}

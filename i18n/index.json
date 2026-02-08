@@ -1,0 +1,13 @@
+{
+  "defaultLocale": "ja",
+  "supportedLocales": [
+    "ja",
+    "en"
+  ],
+  "namespaces": {
+    "onboarding": {
+      "ja": "./ja/onboarding.json",
+      "en": "./en/onboarding.json"
+    }
+  }
+}

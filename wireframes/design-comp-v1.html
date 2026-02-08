@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ちいさな肯定 Design Comp v1</title>
+  <style>
+    :root {
+      --bg-a: #f3fbf7;
+      --bg-b: #eef3ff;
+      --ink: #202734;
+      --muted: #5f6f84;
+      --panel: #ffffff;
+      --line: #d2deea;
+      --accent: #3f8e74;
+      --accent-soft: #ebf8f3;
+      --warm: #f9efe4;
+      --low: #eef3ff;
+      --ok: #edf9f0;
+      --shadow: 0 12px 32px rgba(54, 81, 122, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 700px at -10% -10%, #dff3ea 0%, transparent 55%),
+        radial-gradient(1200px 700px at 110% 110%, #dfe7fb 0%, transparent 55%),
+        linear-gradient(130deg, var(--bg-a), var(--bg-b));
+      font-family: "Avenir Next", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      margin: 8px 0 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .wrap {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .phone {
+      min-height: 620px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      background: var(--panel);
+      animation: rise .45s ease both;
+    }
+    .head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 11px 12px;
+      font-size: 13px;
+    }
+    .hero {
+      border: 0;
+      color: #153a30;
+      background: linear-gradient(140deg, #e6f6f0, #edf3ff);
+      box-shadow: inset 0 0 0 1px rgba(65, 130, 107, .15);
+    }
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      background: #f7fafc;
+      color: #253247;
+    }
+    .btn.primary {
+      color: #fff;
+      background: linear-gradient(140deg, #3f8e74, #5a85c4);
+      box-shadow: 0 10px 24px rgba(66, 122, 112, .28);
+    }
+    .btn.ghost {
+      border-color: var(--line);
+      background: #fff;
+    }
+    .btn.warn {
+      background: linear-gradient(140deg, #fbefef, #f9f3e7);
+      border-color: #e4d5bf;
+      color: #6e4f2d;
+    }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      font-size: 12px;
+    }
+    .chip.active {
+      border-color: #7abca5;
+      background: var(--accent-soft);
+      color: #275e4d;
+    }
+    .tiny {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .error {
+      border-color: #e6b4b4;
+      color: #8f2f2f;
+      background: #fff6f6;
+    }
+    .meter {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(5, 1fr);
+    }
+    .dot {
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      font-size: 12px;
+    }
+    .dot.sel {
+      border-color: #68a997;
+      background: var(--accent-soft);
+      font-weight: 700;
+    }
+    .cal {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .d {
+      min-height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      background: #fff;
+    }
+    .d.ok { background: var(--ok); }
+    .d.low { background: var(--low); }
+    .d.high { background: var(--warm); }
+    .nav {
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      font-size: 11px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .nav div { padding: 10px 4px; }
+    .nav .on { color: #284f84; font-weight: 700; }
+    @keyframes rise {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Design Comp v1</h1>
+  <p class="sub">ちいさな肯定 / MVP 8画面（要件定義・詳細設計準拠）</p>
+
+  <section class="wrap">
+    <article class="phone">
+      <div class="head">Onboarding 1</div>
+      <div class="body">
+        <div class="card hero">ここに来てくれただけで、もう一歩進んでいます</div>
+        <div class="card tiny">30秒で記録。オフラインでも使えます</div>
+        <div class="row">
+          <div class="btn ghost">スキップ</div>
+          <div class="btn primary">次へ</div>
+        </div>
+      </div>
+      <div class="nav"><div class="on">● ○ ○</div><div></div><div></div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Onboarding 2</div>
+      <div class="body">
+        <div class="card hero">できたことは、どんなに小さくても“できたこと”です</div>
+        <div class="card tiny">比較はしません。あなたのペースを大切にします</div>
+        <div class="row">
+          <div class="btn ghost">戻る</div>
+          <div class="btn primary">次へ</div>
+        </div>
+      </div>
+      <div class="nav"><div class="on">○ ● ○</div><div></div><div></div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Onboarding 3</div>
+      <div class="body">
+        <div class="card hero">今日はひとつだけ、記録してみましょう</div>
+        <div class="card tiny">しんどい日は非常モードだけでも十分です</div>
+        <div class="card">[ ] 利用規約とプライバシーポリシーに同意します</div>
+        <div class="card error tiny">同意のうえ、はじめてください</div>
+        <div class="row">
+          <div class="btn ghost">戻る</div>
+          <div class="btn primary">はじめる</div>
+        </div>
+      </div>
+      <div class="nav"><div class="on">○ ○ ●</div><div></div><div></div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Home</div>
+      <div class="body">
+        <div class="card hero">今日の肯定: 「ここに来ただけで十分です」</div>
+        <div class="btn primary">気分を記録</div>
+        <div class="btn primary">できたことを記録</div>
+        <div class="btn warn">非常モード</div>
+        <div class="card tiny">気分 1件 / できたこと 2件 / SOS 0件</div>
+      </div>
+      <div class="nav"><div class="on">ホーム</div><div>積み上げ</div><div>設定</div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Mood Entry</div>
+      <div class="body">
+        <div class="card tiny">気分レベル（必須）</div>
+        <div class="meter">
+          <div class="dot">1</div><div class="dot">2</div><div class="dot sel">3</div><div class="dot">4</div><div class="dot">5</div>
+        </div>
+        <div class="chips"><div class="chip active">低め</div><div class="chip">高め</div></div>
+        <div class="card">ひとことメモ（任意 / 最大80文字）</div>
+        <div class="btn primary">保存</div>
+        <div class="card error tiny">未選択時: 気分を選んでください</div>
+      </div>
+      <div class="nav"><div>戻る</div><div class="on">保存後 Home</div><div></div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Win Entry</div>
+      <div class="body">
+        <div class="card tiny">クイックタグ（複数選択）</div>
+        <div class="chips">
+          <div class="chip active">起きられた</div><div class="chip active">水分をとった</div><div class="chip">服薬した</div>
+          <div class="chip">外気を吸った</div><div class="chip">シャワー</div><div class="chip">食事</div>
+        </div>
+        <div class="card">自由入力（任意 / 最大100文字）</div>
+        <div class="btn primary">保存</div>
+        <div class="card tiny">保存後: 「小さな行動を積み上げられています」</div>
+      </div>
+      <div class="nav"><div>戻る</div><div class="on">保存後 Home</div><div></div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">Calendar</div>
+      <div class="body">
+        <div class="row"><div class="btn primary">週</div><div class="btn ghost">月</div></div>
+        <div class="cal">
+          <div class="d">1</div><div class="d ok">2</div><div class="d low">3</div><div class="d">4</div><div class="d ok">5</div><div class="d high">6</div><div class="d">7</div>
+          <div class="d">8</div><div class="d ok">9</div><div class="d">10</div><div class="d low">11</div><div class="d">12</div><div class="d ok">13</div><div class="d">14</div>
+          <div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div><div class="d ok">19</div><div class="d">20</div><div class="d">21</div>
+          <div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d high">26</div><div class="d">27</div><div class="d">28</div>
+        </div>
+        <div class="card tiny">凡例: 緑=記録あり / 青=低め傾向 / 橙=高め傾向</div>
+        <div class="card">日付タップで詳細モーダル（気分 / できたこと / SOS）</div>
+      </div>
+      <div class="nav"><div>ホーム</div><div class="on">積み上げ</div><div>設定</div></div>
+    </article>
+
+    <article class="phone">
+      <div class="head">SOS Mode</div>
+      <div class="body">
+        <div class="card hero">今日はこれだけで十分です</div>
+        <div class="card">[ ] 水分をひと口</div>
+        <div class="card">[ ] 10秒呼吸</div>
+        <div class="card">[ ] 横になる</div>
+        <div class="btn ghost">連絡先メモを見る（任意）</div>
+        <div class="btn primary">ホームに戻る</div>
+      </div>
+      <div class="nav"><div>戻る</div><div class="on">Home</div><div></div></div>
+    </article>
+  </section>
+</body>
+</html>
