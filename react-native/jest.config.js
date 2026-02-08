@@ -1,0 +1,6 @@
+/** @type {import("jest").Config} */
+module.exports = {
+  preset: "jest-expo",
+  testPathIgnorePatterns: ["/node_modules/", "/e2e/"],
+  collectCoverageFrom: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts"]
+};

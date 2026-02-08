@@ -6,7 +6,13 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "web:e2e": "npx expo export --platform web && npx serve -s dist -l tcp://127.0.0.1:19006",
+    "test": "npm run test:unit",
+    "test:unit": "jest --watchman=false",
+    "test:unit:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "8.4.4",
@@ -20,7 +26,14 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
+    "jest": "^29.7.0",
+    "jest-expo": "^54.0.17",
+    "react-test-renderer": "^19.1.0",
+    "serve": "^14.2.5",
     "typescript": "~5.9.2"
   },
   "private": true

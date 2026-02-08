@@ -55,6 +55,22 @@ npx tsc --noEmit
 npx expo export --platform web
 ```
 
+## 自動テスト
+
+```bash
+# Unitテスト
+npm run test:unit
+
+# E2E実行前にブラウザを初回インストール
+npx playwright install chromium
+
+# E2Eテスト（Webビルドを生成して静的配信し、Playwrightで検証）
+npm run test:e2e
+
+# Unit + E2E一括
+npm run test:all
+```
+
 ## 主要画面フロー
 
 1. 初回起動: Onboarding1 -> Onboarding2 -> Onboarding3（同意）-> Home  
@@ -79,6 +95,7 @@ DB名: `taskapp.db`
 - `onboarding_completed`
 - `reminder_enabled`
 - `daily_reminder_time`
+- `gentle_mode`
 
 ## 通知仕様
 

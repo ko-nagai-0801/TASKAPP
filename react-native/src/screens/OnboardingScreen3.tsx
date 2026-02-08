@@ -54,6 +54,7 @@ export function OnboardingScreen3({ onBack, onStart }: OnboardingScreen3Props) {
           accessibilityState={{ checked: consented }}
           accessibilityLabel="利用規約とプライバシーポリシーに同意します"
           onPress={toggleConsent}
+          testID="onboarding-consent"
           style={({ pressed }) => [styles.checkboxCard, pressed && styles.pressed]}
         >
           <Text style={styles.checkboxText}>
@@ -69,7 +70,7 @@ export function OnboardingScreen3({ onBack, onStart }: OnboardingScreen3Props) {
 
         <View style={styles.actions}>
           <AppButton label="戻る" onPress={onBack} variant="ghost" />
-          <AppButton label="はじめる" onPress={handleStart} />
+          <AppButton label="はじめる" onPress={handleStart} testID="onboarding-start" />
         </View>
 
         <Text style={styles.progress}>○ ○ ●</Text>

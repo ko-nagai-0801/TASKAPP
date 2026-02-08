@@ -78,7 +78,9 @@ export function HomeScreen({
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.header}>今日の1分</Text>
+        <Text style={styles.header} testID="home-screen-title">
+          今日の1分
+        </Text>
         <Text style={styles.lead}>迷わず始められるよう、最初の操作を1つに絞っています</Text>
 
         <AppCard tone={isGentleMode ? "warning" : "info"}>
@@ -106,6 +108,7 @@ export function HomeScreen({
           label={primaryLabel}
           onPress={onPrimaryPress}
           variant={isGentleMode ? "warning" : "primary"}
+          testID="home-primary-action"
           accessibilityHint="今日の最初の行動を開始します"
         />
 

@@ -24,7 +24,7 @@ export function OnboardingScreen1({ onNext, onSkip }: OnboardingScreen1Props) {
         </AppCard>
 
         <View style={styles.actions}>
-          <AppButton label="スキップ" onPress={onSkip} variant="ghost" />
+          <AppButton label="スキップ" onPress={onSkip} variant="ghost" testID="onboarding-skip" />
           <AppButton label="次へ" onPress={onNext} />
         </View>
 
