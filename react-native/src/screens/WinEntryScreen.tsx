@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
+import { StateBanner } from "../components/StateBanner";
 import { colors, radius, spacing, typography } from "../design/tokens";
 
 const TAG_OPTIONS = [
@@ -50,6 +51,7 @@ export function WinEntryScreen({ onBack, onSave }: WinEntryScreenProps) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.header}>できたこと記録</Text>
+        <StateBanner tone="info" title="入力の目安" message="タグだけでも保存できます。文章入力は任意です。" />
 
         <AppCard>
           <Text style={styles.label}>クイックタグ（複数選択）</Text>
@@ -61,6 +63,7 @@ export function WinEntryScreen({ onBack, onSave }: WinEntryScreenProps) {
                   key={tag}
                   accessibilityRole="button"
                   accessibilityLabel={tag}
+                  accessibilityState={{ selected: active }}
                   onPress={() => toggleTag(tag)}
                   style={[styles.tagChip, active && styles.tagChipActive]}
                 >
@@ -81,15 +84,12 @@ export function WinEntryScreen({ onBack, onSave }: WinEntryScreenProps) {
             placeholder="例: 小さくても残せた"
             placeholderTextColor={colors.muted}
             style={styles.input}
+            accessibilityLabel="できたことの自由入力"
           />
           <Text style={styles.counter}>{noteLength}/100</Text>
         </AppCard>
 
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
+        {error ? <StateBanner tone="error" title="入力エラー" message={error} /> : null}
 
         <View style={styles.actions}>
           <AppButton label="戻る" onPress={onBack} variant="ghost" />
@@ -111,13 +111,13 @@ const styles = StyleSheet.create({
     gap: spacing.md
   },
   header: {
-    fontSize: typography.title,
+    fontSize: typography.heading,
     fontWeight: "700",
     color: colors.text
   },
   label: {
-    fontSize: typography.body,
-    color: colors.muted,
+    fontSize: typography.label,
+    color: colors.textSubtle,
     marginBottom: spacing.sm
   },
   tagsWrap: {
@@ -127,14 +127,16 @@ const styles = StyleSheet.create({
   },
   tagChip: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: 999,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs
+    paddingVertical: spacing.xs,
+    minHeight: 36,
+    justifyContent: "center"
   },
   tagChipActive: {
-    borderColor: colors.primaryStart,
+    borderColor: colors.primary,
     backgroundColor: colors.primarySoft
   },
   tagText: {
@@ -142,13 +144,13 @@ const styles = StyleSheet.create({
     fontSize: typography.caption
   },
   tagTextActive: {
-    color: colors.primaryStart,
+    color: colors.primary,
     fontWeight: "700"
   },
   input: {
-    minHeight: 88,
+    minHeight: 96,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
     padding: spacing.sm,
@@ -158,20 +160,8 @@ const styles = StyleSheet.create({
   counter: {
     marginTop: spacing.xs,
     fontSize: typography.caption,
-    color: colors.muted,
+    color: colors.textSubtle,
     textAlign: "right"
-  },
-  errorBox: {
-    borderWidth: 1,
-    borderColor: "#E6B4B4",
-    borderRadius: radius.md,
-    backgroundColor: "#FFF6F6",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
-  },
-  errorText: {
-    color: "#8F2F2F",
-    fontSize: typography.caption
   },
   actions: {
     flexDirection: "row",

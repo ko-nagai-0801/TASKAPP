@@ -3,45 +3,66 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  ViewStyle,
-  TextStyle
+  TextStyle,
+  ViewStyle
 } from "react-native";
 import { colors, radius, spacing, typography } from "../design/tokens";
 
-type Variant = "primary" | "ghost";
+type Variant = "primary" | "secondary" | "ghost" | "warning" | "danger";
 
 type AppButtonProps = {
   label: string;
   onPress: () => void;
   variant?: Variant;
+  disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
 };
 
 export function AppButton({
   label,
   onPress,
   variant = "primary",
+  disabled = false,
   style,
   textStyle,
-  accessibilityLabel
+  accessibilityLabel,
+  accessibilityHint
 }: AppButtonProps) {
-  const isPrimary = variant === "primary";
-
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.ghost,
-        pressed && styles.pressed,
+        variant === "primary" && styles.primary,
+        variant === "secondary" && styles.secondary,
+        variant === "ghost" && styles.ghost,
+        variant === "warning" && styles.warning,
+        variant === "danger" && styles.danger,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
         style
       ]}
     >
-      <Text style={[styles.text, isPrimary ? styles.primaryText : styles.ghostText, textStyle]}>
+      <Text
+        style={[
+          styles.text,
+          variant === "primary" && styles.primaryText,
+          variant === "secondary" && styles.secondaryText,
+          variant === "ghost" && styles.ghostText,
+          variant === "warning" && styles.warningText,
+          variant === "danger" && styles.dangerText,
+          disabled && styles.disabledText,
+          textStyle
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -50,7 +71,7 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.md,
@@ -58,15 +79,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md
   },
   primary: {
-    backgroundColor: colors.primaryStart,
-    borderColor: colors.primaryStart
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  secondary: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary
   },
   ghost: {
     backgroundColor: colors.surface,
-    borderColor: colors.border
+    borderColor: colors.borderStrong
+  },
+  warning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning
+  },
+  danger: {
+    backgroundColor: colors.errorSoft,
+    borderColor: colors.error
   },
   pressed: {
-    opacity: 0.85
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }]
+  },
+  disabled: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border
   },
   text: {
     fontSize: typography.button,
@@ -75,7 +113,19 @@ const styles = StyleSheet.create({
   primaryText: {
     color: "#FFFFFF"
   },
+  secondaryText: {
+    color: colors.primary
+  },
   ghostText: {
     color: colors.text
+  },
+  warningText: {
+    color: colors.warning
+  },
+  dangerText: {
+    color: colors.error
+  },
+  disabledText: {
+    color: colors.muted
   }
 });

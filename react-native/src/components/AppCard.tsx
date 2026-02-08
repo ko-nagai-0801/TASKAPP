@@ -6,13 +6,23 @@ type AppCardProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
-  tone?: "default" | "hero";
+  tone?: "default" | "hero" | "success" | "warning" | "error" | "info";
 };
 
 export function AppCard({ children, style, textStyle, tone = "default" }: AppCardProps) {
-  const isHero = tone === "hero";
   return (
-    <View style={[styles.base, isHero ? styles.hero : styles.default, style]}>
+    <View
+      style={[
+        styles.base,
+        tone === "default" && styles.default,
+        tone === "hero" && styles.hero,
+        tone === "success" && styles.success,
+        tone === "warning" && styles.warning,
+        tone === "error" && styles.error,
+        tone === "info" && styles.info,
+        style
+      ]}
+    >
       {typeof children === "string" ? <Text style={[styles.text, textStyle]}>{children}</Text> : children}
     </View>
   );
@@ -30,6 +40,22 @@ const styles = StyleSheet.create({
   },
   hero: {
     backgroundColor: colors.primarySoft
+  },
+  success: {
+    backgroundColor: colors.successSoft,
+    borderColor: colors.success
+  },
+  warning: {
+    backgroundColor: colors.warningSoft,
+    borderColor: colors.warning
+  },
+  error: {
+    backgroundColor: colors.errorSoft,
+    borderColor: colors.error
+  },
+  info: {
+    backgroundColor: colors.infoSoft,
+    borderColor: colors.info
   },
   text: {
     color: colors.text,

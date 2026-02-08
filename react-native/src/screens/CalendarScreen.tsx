@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Modal, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { AppCard } from "../components/AppCard";
+import { StateBanner } from "../components/StateBanner";
 import { colors, radius, spacing, typography } from "../design/tokens";
 import { MoodLog, MoodPolarity, SosLog, toDateKey, WinLog } from "../types/logs";
 
@@ -71,6 +72,19 @@ function toneStyle(tone: DayTone) {
   return undefined;
 }
 
+function toneSymbol(tone: DayTone): string {
+  if (tone === "recorded") {
+    return "●";
+  }
+  if (tone === "low") {
+    return "▼";
+  }
+  if (tone === "high") {
+    return "▲";
+  }
+  return "・";
+}
+
 function buildRecentDays(referenceDate: Date, count: number): DateItem[] {
   const items: DateItem[] = [];
   for (let index = count - 1; index >= 0; index -= 1) {
@@ -138,6 +152,11 @@ export function CalendarScreen({ onBack, moodLogs, winLogs, sosLogs }: CalendarS
     });
   }, [mode, moodMap, sosMap, today, winMap]);
 
+  const hasAnyVisibleRecord = useMemo(
+    () => dayItems.some((item) => item.tone !== "none"),
+    [dayItems]
+  );
+
   const moodSummary = useMemo(() => {
     if (!selectedDay || selectedDay.moodLogs.length === 0) {
       return "記録なし";
@@ -200,14 +219,21 @@ export function CalendarScreen({ onBack, moodLogs, winLogs, sosLogs }: CalendarS
               key={item.dateKey}
               style={[styles.dayCell, toneStyle(item.tone), item.isFuture && styles.futureDay]}
               onPress={() => setSelectedDay(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`${formatMonthDay(item.date)} ${item.tone}`}
             >
               <Text style={styles.dayText}>{item.date.getDate()}</Text>
+              <Text style={styles.daySymbol}>{toneSymbol(item.tone)}</Text>
             </Pressable>
           ))}
         </View>
 
-        <AppCard>
-          <Text style={styles.legendText}>凡例: 緑=記録あり / 青=低め傾向 / 橙=高め傾向</Text>
+        {!hasAnyVisibleRecord ? (
+          <StateBanner tone="empty" title="表示範囲に記録がありません" message="気分またはできたことを1件保存すると反映されます。" />
+        ) : null}
+
+        <AppCard tone="info">
+          <Text style={styles.legendText}>凡例: ● 記録あり / ▼ 低め傾向 / ▲ 高め傾向 / ・ なし</Text>
         </AppCard>
 
         <AppButton label="ホームに戻る" onPress={onBack} variant="ghost" />
@@ -286,7 +312,7 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: "13.2%",
-    minHeight: 36,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.sm,
@@ -295,13 +321,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface
   },
   dayRecorded: {
-    backgroundColor: "#EDF9F0"
+    backgroundColor: colors.successSoft
   },
   dayLow: {
-    backgroundColor: "#EEF3FF"
+    backgroundColor: colors.infoSoft
   },
   dayHigh: {
-    backgroundColor: "#F9EFE4"
+    backgroundColor: colors.warningSoft
   },
   futureDay: {
     opacity: 0.6
@@ -310,9 +336,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: typography.caption
   },
+  daySymbol: {
+    color: colors.textSubtle,
+    fontSize: 10
+  },
   legendText: {
-    color: colors.muted,
-    fontSize: typography.caption
+    color: colors.textSubtle,
+    fontSize: typography.caption,
+    lineHeight: 18
   },
   modalBackdrop: {
     flex: 1,

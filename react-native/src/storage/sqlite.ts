@@ -77,6 +77,7 @@ export async function initDatabase(): Promise<void> {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       reminder_enabled INTEGER NOT NULL DEFAULT 1 CHECK (reminder_enabled IN (0, 1)),
       daily_reminder_time TEXT NULL,
+      gentle_mode INTEGER NOT NULL DEFAULT 0 CHECK (gentle_mode IN (0, 1)),
       onboarding_completed INTEGER NOT NULL DEFAULT 0 CHECK (onboarding_completed IN (0, 1)),
       updated_at TEXT NOT NULL
     );
@@ -94,12 +95,13 @@ export async function initDatabase(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_sos_logs_date ON sos_logs (date);
     CREATE INDEX IF NOT EXISTS idx_weekly_goals_week_start ON weekly_goals (week_start);
 
-    INSERT OR IGNORE INTO settings (id, reminder_enabled, daily_reminder_time, onboarding_completed, updated_at)
-    VALUES (1, 1, '20:00', 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    INSERT OR IGNORE INTO settings (id, reminder_enabled, daily_reminder_time, gentle_mode, onboarding_completed, updated_at)
+    VALUES (1, 1, '20:00', 0, 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
   `);
 
   await ensureColumnExists(db, "settings", "reminder_enabled", "INTEGER NOT NULL DEFAULT 1 CHECK (reminder_enabled IN (0, 1))");
   await ensureColumnExists(db, "settings", "daily_reminder_time", "TEXT NULL");
+  await ensureColumnExists(db, "settings", "gentle_mode", "INTEGER NOT NULL DEFAULT 0 CHECK (gentle_mode IN (0, 1))");
 
   await db.runAsync(
     `
@@ -107,6 +109,7 @@ export async function initDatabase(): Promise<void> {
       SET
         reminder_enabled = COALESCE(reminder_enabled, 1),
         daily_reminder_time = COALESCE(daily_reminder_time, '20:00'),
+        gentle_mode = COALESCE(gentle_mode, 0),
         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
       WHERE id = 1
     `
@@ -138,9 +141,10 @@ export async function loadNotificationSettings(): Promise<NotificationSettings> 
   const row = await db.getFirstAsync<{
     reminder_enabled: number | null;
     daily_reminder_time: string | null;
+    gentle_mode: number | null;
   }>(
     `
-      SELECT reminder_enabled, daily_reminder_time
+      SELECT reminder_enabled, daily_reminder_time, gentle_mode
       FROM settings
       WHERE id = 1
     `
@@ -152,7 +156,8 @@ export async function loadNotificationSettings(): Promise<NotificationSettings> 
 
   return {
     reminderEnabled: row.reminder_enabled === 1,
-    reminderTime: row.daily_reminder_time || DEFAULT_NOTIFICATION_SETTINGS.reminderTime
+    reminderTime: row.daily_reminder_time || DEFAULT_NOTIFICATION_SETTINGS.reminderTime,
+    gentleMode: row.gentle_mode === 1
   };
 }
 
@@ -164,11 +169,13 @@ export async function saveNotificationSettings(settings: NotificationSettings): 
       SET
         reminder_enabled = ?,
         daily_reminder_time = ?,
+        gentle_mode = ?,
         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
       WHERE id = 1
     `,
     settings.reminderEnabled ? 1 : 0,
-    settings.reminderTime
+    settings.reminderTime,
+    settings.gentleMode ? 1 : 0
   );
 }
 

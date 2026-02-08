@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { AppToast } from "./components/AppToast";
+import { ScreenTransition } from "./components/ScreenTransition";
 import { colors, spacing, typography } from "./design/tokens";
 import { syncDailyReminder } from "./notifications/reminder";
 import { OnboardingFlow } from "./onboarding";
@@ -32,6 +34,7 @@ import { MoodLog, nowIsoString, SosLog, toDateKey, WinLog } from "./types/logs";
 import { DEFAULT_NOTIFICATION_SETTINGS, NotificationSettings } from "./types/settings";
 
 type Screen = "home" | "mood" | "win" | "sos" | "calendar" | "settings" | "plan" | "summary";
+type ToastTone = "success" | "error" | "info";
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -117,7 +120,19 @@ export default function App() {
   const [sosLogs, setSosLogs] = useState<SosLog[]>([]);
   const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+  const [toast, setToast] = useState<{ tone: ToastTone; message: string; visible: boolean } | null>(null);
   const weekStart = useMemo(() => getWeekStartKey(new Date()), []);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (tone: ToastTone, message: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToast({ tone, message, visible: true });
+    toastTimerRef.current = setTimeout(() => {
+      setToast((previous) => (previous ? { ...previous, visible: false } : null));
+    }, 2200);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -172,6 +187,14 @@ export default function App() {
     };
   }, [weekStart]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
   const todayKey = toDateKey(new Date());
   const moodCountToday = moodLogs.filter((log) => log.date === todayKey).length;
   const winCountToday = winLogs.filter((log) => log.date === todayKey).length;
@@ -181,6 +204,34 @@ export default function App() {
     [todayKey, moodLogs, winLogs, sosLogs]
   );
   const insightMessage = useMemo(() => deriveInsightMessage(moodLogs, winLogs, sosLogs), [moodLogs, winLogs, sosLogs]);
+
+  const renderScreen = (content: React.ReactNode) => (
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <View style={styles.screenContainer}>
+        {toast ? <AppToast visible={toast.visible} tone={toast.tone} message={toast.message} /> : null}
+        <ScreenTransition screenKey={screen}>{content}</ScreenTransition>
+      </View>
+    </>
+  );
+
+  const handleToggleGentleMode = async () => {
+    const previous = notificationSettings;
+    const nextSettings: NotificationSettings = {
+      ...previous,
+      gentleMode: !previous.gentleMode
+    };
+
+    setNotificationSettings(nextSettings);
+
+    try {
+      await saveNotificationSettings(nextSettings);
+      showToast("success", nextSettings.gentleMode ? "しんどい日モードを有効化しました" : "通常表示に戻しました");
+    } catch {
+      setNotificationSettings(previous);
+      showToast("error", "表示モードの保存に失敗しました");
+    }
+  };
 
   if (!isHydrated) {
     return (
@@ -211,225 +262,212 @@ export default function App() {
   }
 
   if (screen === "mood") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <MoodEntryScreen
-          onBack={() => setScreen("home")}
-          onSave={async (payload) => {
-            const moodLog: MoodLog = {
-              id: createId("mood"),
-              date: toDateKey(new Date()),
-              moodLevel: payload.moodLevel,
-              polarity: payload.polarity,
-              note: payload.note,
-              createdAt: nowIsoString()
-            };
+    return renderScreen(
+      <MoodEntryScreen
+        onBack={() => setScreen("home")}
+        onSave={async (payload) => {
+          const moodLog: MoodLog = {
+            id: createId("mood"),
+            date: toDateKey(new Date()),
+            moodLevel: payload.moodLevel,
+            polarity: payload.polarity,
+            note: payload.note,
+            createdAt: nowIsoString()
+          };
 
-            setMoodLogs((prev) => [...prev, moodLog]);
-            setScreen("home");
+          setMoodLogs((prev) => [...prev, moodLog]);
+          setScreen("home");
 
-            try {
-              await insertMoodLog(moodLog);
-            } catch {
-              setMoodLogs((prev) => prev.filter((entry) => entry.id !== moodLog.id));
-              Alert.alert("保存エラー", "気分記録の保存に失敗しました。");
-            }
-          }}
-        />
-      </>
+          try {
+            await insertMoodLog(moodLog);
+            showToast("success", "気分記録を保存しました");
+          } catch {
+            setMoodLogs((prev) => prev.filter((entry) => entry.id !== moodLog.id));
+            showToast("error", "気分記録の保存に失敗しました");
+          }
+        }}
+      />
     );
   }
 
   if (screen === "win") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <WinEntryScreen
-          onBack={() => setScreen("home")}
-          onSave={async (payload) => {
-            const winLog: WinLog = {
-              id: createId("win"),
-              date: toDateKey(new Date()),
-              tags: payload.tags,
-              note: payload.note,
-              createdAt: nowIsoString()
-            };
+    return renderScreen(
+      <WinEntryScreen
+        onBack={() => setScreen("home")}
+        onSave={async (payload) => {
+          const winLog: WinLog = {
+            id: createId("win"),
+            date: toDateKey(new Date()),
+            tags: payload.tags,
+            note: payload.note,
+            createdAt: nowIsoString()
+          };
 
-            setWinLogs((prev) => [...prev, winLog]);
-            setScreen("home");
+          setWinLogs((prev) => [...prev, winLog]);
+          setScreen("home");
 
-            try {
-              await insertWinLog(winLog);
-            } catch {
-              setWinLogs((prev) => prev.filter((entry) => entry.id !== winLog.id));
-              Alert.alert("保存エラー", "できたこと記録の保存に失敗しました。");
-            }
-          }}
-        />
-      </>
+          try {
+            await insertWinLog(winLog);
+            showToast("success", "できたことを保存しました");
+          } catch {
+            setWinLogs((prev) => prev.filter((entry) => entry.id !== winLog.id));
+            showToast("error", "できたこと記録の保存に失敗しました");
+          }
+        }}
+      />
     );
   }
 
   if (screen === "sos") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <SosModeScreen
-          onBack={() => setScreen("home")}
-          onDone={async ({ hydrationDone, breathingDone, restDone }) => {
-            const hasCompletedTask = hydrationDone || breathingDone || restDone;
-            if (!hasCompletedTask) {
-              setScreen("home");
-              return;
-            }
-
-            const sosLog: SosLog = {
-              id: createId("sos"),
-              date: toDateKey(new Date()),
-              hydrationDone,
-              breathingDone,
-              restDone,
-              createdAt: nowIsoString()
-            };
-
-            setSosLogs((prev) => [...prev, sosLog]);
+    return renderScreen(
+      <SosModeScreen
+        onBack={() => setScreen("home")}
+        onDone={async ({ hydrationDone, breathingDone, restDone }) => {
+          const hasCompletedTask = hydrationDone || breathingDone || restDone;
+          if (!hasCompletedTask) {
             setScreen("home");
+            return;
+          }
 
-            try {
-              await insertSosLog(sosLog);
-            } catch {
-              setSosLogs((prev) => prev.filter((entry) => entry.id !== sosLog.id));
-              Alert.alert("保存エラー", "非常モード記録の保存に失敗しました。");
-            }
-          }}
-        />
-      </>
+          const sosLog: SosLog = {
+            id: createId("sos"),
+            date: toDateKey(new Date()),
+            hydrationDone,
+            breathingDone,
+            restDone,
+            createdAt: nowIsoString()
+          };
+
+          setSosLogs((prev) => [...prev, sosLog]);
+          setScreen("home");
+
+          try {
+            await insertSosLog(sosLog);
+            showToast("success", "非常モードの記録を保存しました");
+          } catch {
+            setSosLogs((prev) => prev.filter((entry) => entry.id !== sosLog.id));
+            showToast("error", "非常モード記録の保存に失敗しました");
+          }
+        }}
+      />
     );
   }
 
   if (screen === "calendar") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <CalendarScreen onBack={() => setScreen("home")} moodLogs={moodLogs} winLogs={winLogs} sosLogs={sosLogs} />
-      </>
-    );
+    return renderScreen(<CalendarScreen onBack={() => setScreen("home")} moodLogs={moodLogs} winLogs={winLogs} sosLogs={sosLogs} />);
   }
 
   if (screen === "plan") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <WeeklyPlanScreen
-          weekStart={weekStart}
-          goals={weeklyGoals}
-          onBack={() => setScreen("home")}
-          onOpenSummary={() => setScreen("summary")}
-          onAddGoal={async (title) => {
-            const goal: WeeklyGoal = {
-              id: createId("goal"),
-              weekStart,
-              title,
-              completed: false,
-              createdAt: nowIsoString()
-            };
+    return renderScreen(
+      <WeeklyPlanScreen
+        weekStart={weekStart}
+        goals={weeklyGoals}
+        onBack={() => setScreen("home")}
+        onOpenSummary={() => setScreen("summary")}
+        onAddGoal={async (title) => {
+          const goal: WeeklyGoal = {
+            id: createId("goal"),
+            weekStart,
+            title,
+            completed: false,
+            createdAt: nowIsoString()
+          };
 
-            setWeeklyGoals((prev) => [...prev, goal]);
-            try {
-              await insertWeeklyGoal(goal);
-            } catch {
-              setWeeklyGoals((prev) => prev.filter((entry) => entry.id !== goal.id));
-              throw new Error("insert goal failed");
-            }
-          }}
-          onToggleGoal={async (goalId, completed) => {
-            const previous = weeklyGoals;
-            setWeeklyGoals((prev) => prev.map((goal) => (goal.id === goalId ? { ...goal, completed } : goal)));
-            try {
-              await updateWeeklyGoalCompletion(goalId, completed);
-            } catch {
-              setWeeklyGoals(previous);
-              throw new Error("update goal failed");
-            }
-          }}
-        />
-      </>
+          setWeeklyGoals((prev) => [...prev, goal]);
+          try {
+            await insertWeeklyGoal(goal);
+            showToast("success", "週間目標を追加しました");
+          } catch {
+            setWeeklyGoals((prev) => prev.filter((entry) => entry.id !== goal.id));
+            throw new Error("insert goal failed");
+          }
+        }}
+        onToggleGoal={async (goalId, completed) => {
+          const previous = weeklyGoals;
+          setWeeklyGoals((prev) => prev.map((goal) => (goal.id === goalId ? { ...goal, completed } : goal)));
+          try {
+            await updateWeeklyGoalCompletion(goalId, completed);
+          } catch {
+            setWeeklyGoals(previous);
+            throw new Error("update goal failed");
+          }
+        }}
+      />
     );
   }
 
   if (screen === "summary") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <WeeklySummaryScreen
-          weekStart={weekStart}
-          goals={weeklyGoals}
-          moodLogs={moodLogs}
-          winLogs={winLogs}
-          sosLogs={sosLogs}
-          onBack={() => setScreen("plan")}
-        />
-      </>
+    return renderScreen(
+      <WeeklySummaryScreen
+        weekStart={weekStart}
+        goals={weeklyGoals}
+        moodLogs={moodLogs}
+        winLogs={winLogs}
+        sosLogs={sosLogs}
+        onBack={() => setScreen("plan")}
+      />
     );
   }
 
   if (screen === "settings") {
-    return (
-      <>
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <SettingsScreen
-          initialSettings={notificationSettings}
-          onBack={() => setScreen("home")}
-          onSave={async (nextSettings) => {
-            const previous = notificationSettings;
-            setNotificationSettings(nextSettings);
-            try {
-              await saveNotificationSettings(nextSettings);
-              const result = await syncDailyReminder(nextSettings, true);
-              if (result === "permission_denied" && nextSettings.reminderEnabled) {
-                Alert.alert("通知権限が必要です", "端末設定で通知を許可するとリマインドを受け取れます。");
-              }
-              setScreen("home");
-            } catch {
-              setNotificationSettings(previous);
-              throw new Error("save notification settings failed");
+    return renderScreen(
+      <SettingsScreen
+        initialSettings={notificationSettings}
+        onBack={() => setScreen("home")}
+        onSave={async (nextSettings) => {
+          const previous = notificationSettings;
+          setNotificationSettings(nextSettings);
+          try {
+            await saveNotificationSettings(nextSettings);
+            const result = await syncDailyReminder(nextSettings, true);
+            if (result === "permission_denied" && nextSettings.reminderEnabled) {
+              Alert.alert("通知権限が必要です", "端末設定で通知を許可するとリマインドを受け取れます。");
             }
-          }}
-          onResetOnboarding={() => {
+            showToast("success", "設定を保存しました");
             setScreen("home");
-            setOnboardingCompleted(false);
-            void saveOnboardingCompleted(false).catch(() => {
-              Alert.alert("保存エラー", "オンボーディング状態の保存に失敗しました。");
-            });
-          }}
-        />
-      </>
+          } catch {
+            setNotificationSettings(previous);
+            throw new Error("save notification settings failed");
+          }
+        }}
+        onResetOnboarding={() => {
+          setScreen("home");
+          setOnboardingCompleted(false);
+          void saveOnboardingCompleted(false).catch(() => {
+            Alert.alert("保存エラー", "オンボーディング状態の保存に失敗しました。");
+          });
+        }}
+      />
     );
   }
 
-  return (
-    <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <HomeScreen
-        affirmationText={affirmationText}
-        insightMessage={insightMessage}
-        moodCountToday={moodCountToday}
-        winCountToday={winCountToday}
-        sosCountToday={sosCountToday}
-        onMoodPress={() => setScreen("mood")}
-        onWinPress={() => setScreen("win")}
-        onSosPress={() => setScreen("sos")}
-        onCalendarPress={() => setScreen("calendar")}
-        onPlanPress={() => setScreen("plan")}
-        onSettingsPress={() => setScreen("settings")}
-      />
-    </>
+  return renderScreen(
+    <HomeScreen
+      affirmationText={affirmationText}
+      insightMessage={insightMessage}
+      moodCountToday={moodCountToday}
+      winCountToday={winCountToday}
+      sosCountToday={sosCountToday}
+      isGentleMode={notificationSettings.gentleMode}
+      onToggleGentleMode={() => {
+        void handleToggleGentleMode();
+      }}
+      onMoodPress={() => setScreen("mood")}
+      onWinPress={() => setScreen("win")}
+      onSosPress={() => setScreen("sos")}
+      onCalendarPress={() => setScreen("calendar")}
+      onPlanPress={() => setScreen("plan")}
+      onSettingsPress={() => setScreen("settings")}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+    backgroundColor: colors.background
+  },
+  screenContainer: {
     flex: 1,
     backgroundColor: colors.background
   },
